@@ -1,0 +1,6 @@
+[submodule "trevisiol-base"]
+	path = trevisiol-base
+	url = https://github.com/MarcoTrevisiol/trevisiol-base.git
+[submodule "trevisiol-dwm"]
+	path = trevisiol-dwm
+	url = https://github.com/MarcoTrevisiol/trevisiol-dwm.git
