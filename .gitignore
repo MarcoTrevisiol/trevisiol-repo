@@ -2,7 +2,9 @@
 *.dsc
 *.build
 *.buildinfo
+*.ddeb
 *.changes
 *.tar.xz
 *.tar.gz
 repo/
+.submodule_*

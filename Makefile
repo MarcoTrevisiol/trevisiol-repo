@@ -15,14 +15,21 @@ repo/pool/main: trevisiol-base_1_all.deb trevisiol-dwm_1-1_amd64.deb
 	mkdir -p repo/pool/main/
 	cp *.deb repo/pool/main/
 
-trevisiol-base_1_all.deb:
+trevisiol-base_1_all.deb: .submodule_base
 	cd trevisiol-base && debuild -uc -us
 
-trevisiol-dwm_1-1_amd64.deb: trevisiol-dwm_1.orig-dwm.tar.gz
+trevisiol-dwm_1-1_amd64.deb: trevisiol-dwm_1.orig-dwm.tar.gz .submodule_dwm
 	cd trevisiol-dwm && debuild --no-tgz-check -uc -us
 
-trevisiol-dwm_1.orig-dwm.tar.gz:
+trevisiol-dwm_1.orig-dwm.tar.gz: .submodule_dwm
 	cd trevisiol-dwm && uscan -dd
+
+SUBMODULE_COMMIT_BASE := $(shell git -C trevisiol-base rev-parse HEAD)
+SUBMODULE_COMMIT_DWM  := $(shell git -C trevisiol-dwm  rev-parse HEAD)
+.submodule_base:
+	@echo "$(SUBMODULE_COMMIT_BASE)" > $@
+.submodule_dwm:
+	@echo "$(SUBMODULE_COMMIT_DWM)"  > $@
 
 .PHONY: clean
 clean:
