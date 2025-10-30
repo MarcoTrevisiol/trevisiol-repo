@@ -1,37 +1,52 @@
-all: repo/dists/stable/main/binary-amd64/Packages.gz
+PACKAGES := $(patsubst packages/%/,%,$(wildcard packages/*/))
+REPO_DIR := repo
+BUILT_FILES := $(foreach pkg,$(PACKAGES),_build/$(pkg)/_built)
+USCAN_FILES := $(foreach pkg,$(PACKAGES),_build/$(pkg)/_uscan)
+DEBUILD_FLAGS = -uc -us
+REPO_POOL := repo/pool/main
+REPO_PACKAGES := repo/dists/stable/main/binary-amd64/Packages.gz
+
+all: $(REPO_PACKAGES)
+
+
+_build/%/_commit:
+	echo target_commit $@
+	mkdir -p $$(dirname $@)
+	git submodule update --remote $$(dirname $(@:_build/%=packages/%))
+	git -C $$(dirname $(@:_build/%=packages/%)) rev-parse HEAD >$@
+
+_build/trevisiol-dwm/_built: DEBUILD_FLAGS= --no-tgz-check -uc -us
+_build/trevisiol-dwm/_built: _build/trevisiol-dwm/_uscan
+
+_build/%/_built: _build/%/_commit
+	echo target_built $@
+	cd $$(dirname $(@:_build/%=packages/%)) && debuild $(DEBUILD_FLAGS)
+	touch $@
+
+_build/%/_uscan: _build/%/_commit
+	echo target_uscan $@
+	cd $$(dirname $(@:_build/%=packages/%)) && uscan -dd
+	touch $@
+
 
 build-dep:
 	apt install devscripts debhelper lintian
-	cd trevisiol-dwm && apt build-dep .
+	cd packages/trevisiol-dwm && apt build-dep .
 
-repo.tar.gz: repo/dists/stable/main/binary-amd64/Packages.gz
-	tar -czf repo.tar.gz repo
+repo.tar.gz: $(REPO_PACKAGES)
+	tar -czf $@ repo
 
-repo/dists/stable/main/binary-amd64/Packages.gz: repo/pool/main
-	mkdir -p repo/dists/stable/main/binary-amd64
-	cd repo && dpkg-scanpackages pool /dev/null | gzip -9c >dists/stable/main/binary-amd64/Packages.gz
+$(REPO_PACKAGES): $(REPO_POOL)
+	mkdir -p $$(dirname $@)
+	cd repo && dpkg-scanpackages pool /dev/null | gzip -9c >$(@:repo/%=%)
 
-repo/pool/main: trevisiol-base_1_all.deb trevisiol-dwm_1-1_amd64.deb
-	mkdir -p repo/pool/main/
-	cp *.deb repo/pool/main/
+$(REPO_POOL): $(BUILT_FILES)
+	mkdir -p $@
+	cp packages/*.deb $@
 
-trevisiol-base_1_all.deb: .submodule_base
-	cd trevisiol-base && debuild -uc -us
-
-trevisiol-dwm_1-1_amd64.deb: trevisiol-dwm_1.orig-dwm.tar.gz .submodule_dwm
-	cd trevisiol-dwm && debuild --no-tgz-check -uc -us
-
-trevisiol-dwm_1.orig-dwm.tar.gz: .submodule_dwm
-	cd trevisiol-dwm && uscan -dd
-
-SUBMODULE_COMMIT_BASE := $(shell git -C trevisiol-base rev-parse HEAD)
-SUBMODULE_COMMIT_DWM  := $(shell git -C trevisiol-dwm  rev-parse HEAD)
-.submodule_base:
-	@echo "$(SUBMODULE_COMMIT_BASE)" > $@
-.submodule_dwm:
-	@echo "$(SUBMODULE_COMMIT_DWM)"  > $@
 
 .PHONY: clean
 clean:
-	rm -f *deb *dsc *build *buildinfo *changes *tar.xz *tar.gz
-	rm -rf repo
+	cd packages && rm -f *deb *dsc *build *buildinfo *changes *tar.xz *tar.gz
+	rm -f $(BUILT_FILES) $(USCAN_FILES)
+	rm -rf repo _build
