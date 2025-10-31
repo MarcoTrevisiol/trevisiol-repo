@@ -40,6 +40,7 @@ $(REPO_PACKAGES): $(REPO_POOL)
 $(REPO_POOL): $(BUILT_FILES)
 	mkdir -p $@
 	find packages -maxdepth 1 -name '*dbgsym*' -prune -o -name '*.deb' -exec cp {} $@ \;
+	touch $@
 
 $(REPO_BUNDLE): $(REPO_PACKAGES)
 	tar -czf $@ repo
