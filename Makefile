@@ -43,13 +43,13 @@ _build/%/_uscan: _build/%/_commit
 	cd $$(dirname $(@:_build/%=packages/%)) && uscan -dd
 	touch $@
 
-$(REPO_PACKAGES_GZ): $(REPO_POOL)
+$(REPO_PACKAGES_GZ): $(REPO_POOL) repo/override
 	mkdir -p $$(dirname $@)
-	cd repo && dpkg-scanpackages pool /dev/null | gzip -9c >$(@:repo/%=%)
+	cd repo && dpkg-scanpackages pool override | gzip -9c >$(@:repo/%=%)
 
-$(REPO_PACKAGES_XZ): $(REPO_POOL)
+$(REPO_PACKAGES_XZ): $(REPO_POOL) repo/override
 	mkdir -p $$(dirname $@)
-	cd repo && dpkg-scanpackages pool /dev/null | xz -9e --stdout >$(@:repo/%=%)
+	cd repo && dpkg-scanpackages pool override | xz -9e --stdout >$(@:repo/%=%)
 
 $(REPO_PACKAGES_ALL_XZ): $(REPO_POOL)
 	mkdir -p $$(dirname $@)
@@ -70,6 +70,10 @@ $(REPO_POOL): $(BUILT_FILES)
 
 $(REPO_BUNDLE): $(REPO_PACKAGES_GZ) $(REPO_PACKAGES_XZ) $(REPO_PACKAGES_ALL_XZ) $(REPO_CONTENT_ALL) $(REPO_CONTENT_64)
 	tar -czf $@ repo
+
+repo/override: $(REPO_POOL)
+	cat /dev/null >$@
+	for i in $^/*.deb; do dpkg-deb -f "$$i" Package Priority Section | sed 's/^.*: //' | paste - - - >>$@; done
 
 .PHONY: clean
 clean:
