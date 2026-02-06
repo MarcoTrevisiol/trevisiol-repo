@@ -1,4 +1,5 @@
-PACKAGES := $(patsubst packages/%/,%,$(wildcard packages/*/))
+PACKAGES := trevisiol-base trevisiol-dwm
+PACKAGES_DIRS := $(foreach pkg,$(PACKAGES),packages/$(pkg))
 REPO_DIR := repo
 BUILT_FILES := $(foreach pkg,$(PACKAGES),_build/$(pkg)/_built)
 USCAN_FILES := $(foreach pkg,$(PACKAGES),_build/$(pkg)/_uscan)
@@ -13,27 +14,32 @@ REPO_BUNDLE := repo.tar.gz
 
 all: $(REPO_PACKAGES) $(REPO_BUNDLE)
 
+init: $(PACKAGES_DIRS)
+
+packages/%:
+	git clone https://github.com/MarcoTrevisiol/$$(basename $@).git $@
+
 # run as super user
 build-dep:
 	apt install devscripts debhelper lintian
 	cd packages/trevisiol-dwm && apt build-dep .
 
 _build/%/_commit:
-	echo target_commit $@
+	@echo target_commit $@
 	mkdir -p $$(dirname $@)
-	git submodule update --remote $$(dirname $(@:_build/%=packages/%))
+	git -C $$(dirname $(@:_build/%=packages/%)) pull --force
 	git -C $$(dirname $(@:_build/%=packages/%)) rev-parse HEAD >$@
 
 _build/trevisiol-dwm/_built: DEBUILD_FLAGS= --no-tgz-check -uc -us
 _build/trevisiol-dwm/_built: _build/trevisiol-dwm/_uscan
 
 _build/%/_built: _build/%/_commit
-	echo target_built $@
+	@echo target_built $@
 	cd $$(dirname $(@:_build/%=packages/%)) && debuild $(DEBUILD_FLAGS)
 	touch $@
 
 _build/%/_uscan: _build/%/_commit
-	echo target_uscan $@
+	@echo target_uscan $@
 	cd $$(dirname $(@:_build/%=packages/%)) && uscan -dd
 	touch $@
 
@@ -62,9 +68,7 @@ $(REPO_POOL): $(BUILT_FILES)
 	find packages -maxdepth 1 -name '*dbgsym*' -prune -o -name '*.deb' -exec cp {} $@ \;
 	touch $@
 
-repo_packages: $(REPO_PACKAGES_GZ) $(REPO_PACKAGES_XZ) $(REPO_PACKAGES_ALL_XZ) $(REPO_CONTENT_ALL) $(REPO_CONTENT_64)
-
-$(REPO_BUNDLE): repo_packages
+$(REPO_BUNDLE): $(REPO_PACKAGES_GZ) $(REPO_PACKAGES_XZ) $(REPO_PACKAGES_ALL_XZ) $(REPO_CONTENT_ALL) $(REPO_CONTENT_64)
 	tar -czf $@ repo
 
 .PHONY: clean

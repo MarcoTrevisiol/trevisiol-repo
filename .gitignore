@@ -8,3 +8,5 @@
 *.tar.gz
 repo/
 _build/
+packages/trevisiol-base/
+packages/trevisiol-dwm/
