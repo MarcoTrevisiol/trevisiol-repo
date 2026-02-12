@@ -15,6 +15,7 @@ PKG_UNCOMPRESSED := $(foreach arch,$(ARCHES),$(DIST_DIR)/binary-$(arch)/Packages
 PKG_GZ := $(addsuffix .gz,$(PKG_UNCOMPRESSED))
 PKG_XZ := $(addsuffix .xz,$(PKG_UNCOMPRESSED))
 CONTENTS := $(foreach arch,$(ARCHES),$(REPO_DIST)/Contents-$(arch).xz)
+TRANSLATION := $(DIST_DIR)/i18n/Translation-en.xz
 
 all: $(REPO_PACKAGES) $(REPO_BUNDLE)
 
@@ -69,7 +70,11 @@ $(REPO_DIST)/Contents-%.xz:
 	mkdir -p $$(dirname $@)
 	echo -n "" | xz -9 --stdout >$@
 
-$(REPO_BUNDLE): $(PKG_GZ) $(PKG_XZ) $(CONTENTS)
+$(TRANSLATION):
+	mkdir -p $$(dirname $@)
+	echo -n "" | xz -9 --stdout >$@
+
+$(REPO_BUNDLE): $(PKG_GZ) $(PKG_XZ) $(CONTENTS) $(TRANSLATION)
 	tar -czf $@ repo
 
 %.gz: %
